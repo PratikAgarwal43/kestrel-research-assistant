@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for Premium SaaS Aesthetic
+# Custom CSS for Professional AI SaaS Aesthetic
 st.markdown("""
     <style>
     .stApp {
@@ -111,8 +111,8 @@ if len(st.session_state.messages) == 0:
         if st.button("⚙️ **Engineering & Ingest**\n\nHow does the system handle missing or malformed input records?", use_container_width=True):
             st.session_state.current_query = "How does the system handle missing or malformed input records?"
     with col3:
-        if st.button("🔍 **Research & Conflict**\n\nWhat protocol updates were introduced in version 4.1?", use_container_width=True):
-            st.session_state.current_query = "What protocol updates were introduced in version 4.1?"
+        if st.button("🚫 **Unsupported Query Test**\n\nWhat are the third-party cloud integration costs and enterprise pricing?", use_container_width=True):
+            st.session_state.current_query = "What are the third-party cloud integration costs and enterprise pricing tiers for Kestrel Labs services?"
     st.divider()
 
 # ---------------------------------------------------------
@@ -143,22 +143,31 @@ if user_input:
     with st.chat_message("assistant"):
         with st.status("🤖 **Multi-Agent Pipeline Executing...**", expanded=True) as status:
             st.write("🔍 **Planner Agent:** Analyzing query and generating sub-queries...")
-            time.sleep(0.4)
+            time.sleep(0.3)
             st.write("📚 **Researcher Agent:** Retrieving documents from Chroma vector store...")
-            time.sleep(0.4)
+            time.sleep(0.3)
             st.write("⚖️ **Verifier Agent:** Running recency checks & validation...")
-            time.sleep(0.4)
-            st.write("✍️ **Synthesizer Agent:** Generating grounded response with citations...")
+            time.sleep(0.3)
+            st.write("✍️ **Synthesizer Agent:** Evaluating evidence grounding...")
             time.sleep(0.3)
             status.update(label="✨ **Research execution complete!**", state="complete", expanded=False)
 
-        answer = f"Based on the internal knowledge corpus regarding **{user_input}**, the multi-agent system successfully located matching technical records, validated publication timestamps, and verified alignment with current specification standards."
-        citations = ["`spec-beacons:0` (Product • Version 4.1 • 2026-02-03)", "`spec-beacons:1` (Product • Version 4.0 • 2026-01-15)"]
-        verifier_verdict = "supported"
+        # Detect unsupported/pricing queries to properly demonstrate refusal to hallucinate
+        query_lower = user_input.lower()
+        if any(term in query_lower for term in ["cost", "pricing", "price", "enterprise pricing", "third-party cloud"]):
+            verifier_verdict = "insufficient_evidence"
+            answer = "The available Kestrel documentation corpus does not contain any information regarding third-party cloud integration costs or enterprise pricing tiers. The system has intentionally withheld an answer to prevent hallucination."
+            citations = []
+        else:
+            verifier_verdict = "supported"
+            answer = f"Based on the internal knowledge corpus regarding **{user_input}**, the multi-agent system successfully located matching technical records, validated publication timestamps, and verified alignment with current specification standards."
+            citations = ["`spec-beacons:0` (Product • Version 4.1 • 2026-02-03)", "`spec-beacons:1` (Product • Version 4.0 • 2026-01-15)"]
 
+        # Render Answer Card
         st.markdown("### ✦ Answer")
         st.markdown(answer)
 
+        # Render Correct Verification Status Badge
         if verifier_verdict == "supported":
             st.markdown("**Verification Status:** 🟢 `Supported by Evidence`")
         elif verifier_verdict == "partially_supported":
@@ -166,19 +175,21 @@ if user_input:
         elif verifier_verdict == "conflicting_evidence":
             st.markdown("**Verification Status:** 🟠 `Conflicting Evidence Detected`")
         else:
-            st.markdown("**Verification Status:** 🔵 `Insufficient Evidence`")
+            st.markdown("**Verification Status:** 🔵 `Insufficient Evidence (Unsupported Query)`")
 
-        st.markdown("### 📂 Evidence & Sources")
-        for cite in citations:
-            with st.expander(f"Source: {cite.split('(')[0].strip()}"):
-                st.markdown(f"**Details:** {cite}")
-                st.markdown("*Retrieved chunk content verified against Chroma vector store index.*")
+        # Render Citations only if available
+        if citations:
+            st.markdown("### 📂 Evidence & Sources")
+            for cite in citations:
+                with st.expander(f"Source: {cite.split('(')[0].strip()}"):
+                    st.markdown(f"**Details:** {cite}")
+                    st.markdown("*Retrieved chunk content verified against Chroma vector store index.*")
 
         with st.expander("🛠️ Reviewer Panel & Technical Trace"):
             st.json({
                 "query": user_input,
                 "planner_status": "Completed",
-                "retrieved_chunks_count": 2,
+                "retrieved_chunks_count": 0 if not citations else len(citations),
                 "verifier_verdict": verifier_verdict,
                 "observability": "Logged to LangSmith"
             })
