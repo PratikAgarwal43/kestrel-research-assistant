@@ -113,20 +113,20 @@ st.markdown("""
 # PIPELINE BOOTSTRAP (loads once per session via cache)
 # ---------------------------------------------------------
 @st.cache_resource(show_spinner="⚙️ Initialising multi-agent pipeline…")
-def load_pipeline(cache_key: str = "v7_final_ready"):
+def load_pipeline(cache_key: str = "v8_dual_groq_gemini"):
     """
     Import backend.py and build the pipeline.
     Returns (pipeline_app, vectorstore, chunks, error_message_or_None).
     """
     try:
         # Check st.secrets explicitly for Streamlit Cloud
-        if "GEMINI_API_KEY" not in os.environ:
-            try:
-                # Top-level secret
-                if "GEMINI_API_KEY" in st.secrets:
-                    os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
-            except Exception:
-                pass
+        for k in ["GEMINI_API_KEY", "GROQ_API_KEY", "GEMINI_MODEL", "GROQ_MODEL"]:
+            if k not in os.environ:
+                try:
+                    if k in st.secrets:
+                        os.environ[k] = st.secrets[k]
+                except Exception:
+                    pass
 
         from backend import build_pipeline
         corpus_path = Path(__file__).parent / "corpus.jsonl"
@@ -188,7 +188,7 @@ if "current_query" not in st.session_state:
 # ---------------------------------------------------------
 # LOAD PIPELINE
 # ---------------------------------------------------------
-pipeline_app, vectorstore, chunks_meta, boot_error = load_pipeline(cache_key="v7_final_ready")
+pipeline_app, vectorstore, chunks_meta, boot_error = load_pipeline(cache_key="v8_dual_groq_gemini")
 title_map  = _build_title_map(chunks_meta)
 pipeline_ok = pipeline_app is not None
 

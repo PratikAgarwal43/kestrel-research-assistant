@@ -12,3 +12,4 @@ python-dotenv>=1.0.0
 langsmith>=0.1.0
 typing-extensions>=4.9.0
 pysqlite3-binary>=0.5.2
+langchain-groq>=0.1.0

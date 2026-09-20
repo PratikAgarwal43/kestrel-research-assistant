@@ -516,21 +516,33 @@ def build_pipeline(corpus_path: str | Path):
         search_kwargs={"k": 6},
     )
 
-    # ── LLM (Gemini) ─────────────────────────────────────────────────
-    api_key = os.environ.get("GEMINI_API_KEY", "")
-    if not api_key:
-        raise EnvironmentError(
-            "GEMINI_API_KEY is not set. "
-            "Add it to Streamlit Cloud secrets as GEMINI_API_KEY."
+    # ── LLM (Groq or Gemini) ──────────────────────────────────────────
+    groq_api_key = os.environ.get("GROQ_API_KEY", "")
+    gemini_api_key = os.environ.get("GEMINI_API_KEY", "")
+
+    if groq_api_key:
+        from langchain_groq import ChatGroq
+        model_name = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
+        llm = ChatGroq(
+            model_name=model_name,
+            groq_api_key=groq_api_key,
+            temperature=0.0,
+            max_retries=3,
         )
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-    llm = ChatGoogleGenerativeAI(
-        model=model_name,
-        temperature=0.0,
-        max_output_tokens=2048,
-        google_api_key=api_key,
-        max_retries=3,
-    )
+    elif gemini_api_key:
+        model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+        llm = ChatGoogleGenerativeAI(
+            model=model_name,
+            temperature=0.0,
+            max_output_tokens=2048,
+            google_api_key=gemini_api_key,
+            max_retries=3,
+        )
+    else:
+        raise EnvironmentError(
+            "Neither GROQ_API_KEY nor GEMINI_API_KEY is set. "
+            "Please add one of them to Streamlit Cloud secrets."
+        )
 
     # ── Wire node closures (inject dependencies via closure) ─────────
     def _planner(state):    return planner_node(state, llm)
