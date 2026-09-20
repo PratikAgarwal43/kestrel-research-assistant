@@ -113,7 +113,7 @@ st.markdown("""
 # PIPELINE BOOTSTRAP (loads once per session via cache)
 # ---------------------------------------------------------
 @st.cache_resource(show_spinner="⚙️ Initialising multi-agent pipeline…")
-def load_pipeline(cache_key: str = "v4_multimodel"):
+def load_pipeline(cache_key: str = "v5_sync_multimodel"):
     """
     Import backend.py and build the pipeline.
     Returns (pipeline_app, vectorstore, chunks, error_message_or_None).
@@ -188,7 +188,7 @@ if "current_query" not in st.session_state:
 # ---------------------------------------------------------
 # LOAD PIPELINE
 # ---------------------------------------------------------
-pipeline_app, vectorstore, chunks_meta, boot_error = load_pipeline(cache_key="v4_multimodel")
+pipeline_app, vectorstore, chunks_meta, boot_error = load_pipeline(cache_key="v5_sync_multimodel")
 title_map  = _build_title_map(chunks_meta)
 pipeline_ok = pipeline_app is not None
 
@@ -341,46 +341,33 @@ if user_input:
                 "Please add your `GEMINI_API_KEY` to Streamlit secrets and restart the app."
             )
         else:
-            # Live agent-stage indicators
+            final_state = None
+            pipeline_err = None
             with st.status("🤖 **Multi-Agent Pipeline Running…**", expanded=True) as status:
                 st.write("🧭 **Planner:** Analysing query and deciding retrieval strategy…")
-
-                import threading
-                result_holder: dict = {}
-                history_snapshot = list(st.session_state.conv_history)
-
-                def _run():
-                    try:
-                        from backend import make_initial_state
-                        initial = make_initial_state(user_input, history_snapshot)
-                        result_holder["state"] = pipeline_app.invoke(initial)
-                    except Exception as exc:
-                        import traceback
-                        result_holder["error"] = traceback.format_exc()
-
-                thread = threading.Thread(target=_run, daemon=True)
-                thread.start()
-
-                time.sleep(0.5)
-                st.write("🔎 **Researcher:** Querying Chroma vector store…")
-                time.sleep(0.4)
-                st.write("🛡️ **Verifier:** Checking claims and detecting conflicts…")
-                time.sleep(0.4)
-                st.write("✍️ **Synthesizer:** Building grounded answer with citations…")
-
-                thread.join(timeout=120)
-                status.update(label="✨ **Research complete!**", state="complete", expanded=False)
+                try:
+                    from backend import make_initial_state
+                    history_snapshot = list(st.session_state.conv_history)
+                    initial = make_initial_state(user_input, history_snapshot)
+                    st.write("🔎 **Researcher:** Querying Chroma vector store…")
+                    st.write("🛡️ **Verifier:** Checking claims and detecting conflicts…")
+                    st.write("✍️ **Synthesizer:** Building grounded answer with citations…")
+                    final_state = pipeline_app.invoke(initial)
+                    status.update(label="✨ **Research complete!**", state="complete", expanded=False)
+                except Exception as exc:
+                    import traceback
+                    pipeline_err = traceback.format_exc()
+                    status.update(label="❌ **Execution error**", state="error", expanded=True)
 
             # Handle pipeline error
-            if "error" in result_holder:
-                st.error(f"**Pipeline error during query execution:**\n\n```\n{result_holder['error']}\n```")
+            if pipeline_err or not final_state:
+                st.error(f"**Pipeline error during query execution:**\n\n```\n{pipeline_err}\n```")
                 st.session_state.messages.append({
                     "role": "assistant",
                     "content": "❌ An error occurred during query execution. See the error above.",
                     "meta": {},
                 })
             else:
-                final_state = result_holder.get("state", {})
 
                 # Extract all AgentState fields
                 final_answer       = final_state.get("final_answer", "")
