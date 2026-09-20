@@ -347,11 +347,12 @@ if user_input:
 
                 import threading
                 result_holder: dict = {}
+                history_snapshot = list(st.session_state.conv_history)
 
                 def _run():
                     try:
                         from backend import make_initial_state
-                        initial = make_initial_state(user_input, st.session_state.conv_history)
+                        initial = make_initial_state(user_input, history_snapshot)
                         result_holder["state"] = pipeline_app.invoke(initial)
                     except Exception as exc:
                         import traceback
