@@ -3,6 +3,13 @@ Kestrel Research Assistant — Streamlit UI
 Imports from backend.py (self-contained pipeline module).
 All response fields are read directly from the AgentState returned by app.invoke().
 """
+try:
+    __import__('pysqlite3')
+    import sys
+    sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+except ImportError:
+    pass
+
 import streamlit as st
 import time
 import os
