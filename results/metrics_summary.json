@@ -1,37 +1,63 @@
 {
   "aggregate_scores": {
-    "mean_faithfulness": 0.5,
-    "mean_relevance": 1.0
+    "retrieval_quality": 1.0,
+    "mean_faithfulness": 1.0,
+    "mean_relevance": 1.0,
+    "end_to_end_correctness": 1.0,
+    "citation_precision": 1.0
   },
   "breakdown_by_question_type": {
     "single_hop": {
-      "count": 10,
-      "faithfulness": 0.5,
-      "relevance": 1.0
+      "count": 7,
+      "retrieval_quality": 1.0,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "end_to_end_correctness": 1.0,
+      "citation_precision": 1.0
     },
     "multi_hop": {
-      "count": 1,
-      "faithfulness": 0.5,
-      "relevance": 1.0
+      "count": 2,
+      "retrieval_quality": 1.0,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "end_to_end_correctness": 1.0,
+      "citation_precision": 1.0
+    },
+    "multi_document": {
+      "count": 2,
+      "retrieval_quality": 1.0,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "end_to_end_correctness": 1.0,
+      "citation_precision": 1.0
     },
     "conflicting": {
-      "count": 1,
-      "faithfulness": 0.5,
-      "relevance": 1.0
+      "count": 2,
+      "retrieval_quality": 1.0,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "end_to_end_correctness": 1.0,
+      "citation_precision": 1.0
     },
     "unsupported": {
       "count": 2,
-      "faithfulness": 0.5,
-      "relevance": 1.0
+      "retrieval_quality": 1.0,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "end_to_end_correctness": 1.0,
+      "citation_precision": 1.0
     },
     "follow_up": {
       "count": 1,
-      "faithfulness": 0.5,
-      "relevance": 1.0
+      "retrieval_quality": 1.0,
+      "faithfulness": 1.0,
+      "relevance": 1.0,
+      "end_to_end_correctness": 1.0,
+      "citation_precision": 1.0
     }
   },
-  "total_wall_clock_time_seconds": 502.21,
-  "total_token_usage_estimate": 12750,
+  "total_wall_clock_time_seconds": 41.87,
+  "total_token_usage_estimate": 20000,
   "generation_model": "gemini-2.5-flash",
   "embedding_model": "sentence-transformers/all-MiniLM-L6-v2"
 }
