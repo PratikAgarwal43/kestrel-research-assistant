@@ -494,13 +494,26 @@ def build_pipeline(corpus_path: str | Path):
             "GEMINI_API_KEY is not set. "
             "Add it to Streamlit Cloud secrets as GEMINI_API_KEY."
         )
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
-    llm = ChatGoogleGenerativeAI(
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
+    primary_llm = ChatGoogleGenerativeAI(
         model=model_name,
         temperature=0.0,
         max_output_tokens=2048,
         google_api_key=api_key,
+        max_retries=2,
     )
+    fallback_candidates = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-3.6-flash"]
+    fallbacks = [
+        ChatGoogleGenerativeAI(
+            model=m,
+            temperature=0.0,
+            max_output_tokens=2048,
+            google_api_key=api_key,
+            max_retries=1,
+        )
+        for m in fallback_candidates if m != model_name
+    ]
+    llm = primary_llm.with_fallbacks(fallbacks)
 
     # ── Wire node closures (inject dependencies via closure) ─────────
     def _planner(state):    return planner_node(state, llm)
