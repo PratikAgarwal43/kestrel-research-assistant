@@ -112,12 +112,22 @@ def load_pipeline():
     Returns (pipeline_app, vectorstore, chunks, error_message_or_None).
     """
     try:
+        # Check st.secrets explicitly for Streamlit Cloud
+        if "GEMINI_API_KEY" not in os.environ:
+            try:
+                # Top-level secret
+                if "GEMINI_API_KEY" in st.secrets:
+                    os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+            except Exception:
+                pass
+
         from backend import build_pipeline
         corpus_path = Path(__file__).parent / "corpus.jsonl"
         app, vectorstore, chunks = build_pipeline(corpus_path)
         return app, vectorstore, chunks, None
     except Exception as e:
         import traceback
+        # Return full traceback so we can see if the model is failing
         return None, None, [], traceback.format_exc()
 
 
