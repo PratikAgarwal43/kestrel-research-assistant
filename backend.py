@@ -494,8 +494,9 @@ def build_pipeline(corpus_path: str | Path):
             "GEMINI_API_KEY is not set. "
             "Add it to Streamlit Cloud secrets as GEMINI_API_KEY."
         )
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model=model_name,
         temperature=0.0,
         max_output_tokens=2048,
         google_api_key=api_key,
