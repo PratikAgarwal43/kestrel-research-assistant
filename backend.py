@@ -114,6 +114,34 @@ def _get_content(response) -> str:
     return str(content).strip()
 
 
+def safe_llm_invoke(llm, input_data, max_retries=5, initial_delay=2.0):
+    """Executes LLM invoke with bounded retry and backoff on HTTP 429 rate limits."""
+    delay = initial_delay
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            time.sleep(0.3)
+            return llm.invoke(input_data)
+        except Exception as exc:
+            err_str = str(exc)
+            if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "RateLimit" in err_str:
+                wait_time = delay
+                match = re.search(r'retry in (\d+(\.\d+)?)s', err_str)
+                if match:
+                    wait_time = max(wait_time, float(match.group(1)) + 1.0)
+                else:
+                    match_delay = re.search(r'retryDelay[\'":\s]+(\d+)s', err_str)
+                    if match_delay:
+                        wait_time = max(wait_time, float(match_delay.group(1)) + 1.0)
+                time.sleep(min(wait_time, 65.0))
+                delay *= 2
+                last_exc = exc
+            else:
+                raise exc
+    if last_exc:
+        raise last_exc
+
+
 # ─────────────────────────────────────────────────────────────────────
 # 3. PLANNER / ROUTER AGENT
 # Unchanged from notebook cell 19 — only the f-string bug is fixed.
@@ -163,7 +191,7 @@ Respond with ONLY a valid JSON object with the following structure:
         + '"'
     )
 
-    response = llm.invoke([
+    response = safe_llm_invoke(llm, [
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
     ])
@@ -245,7 +273,7 @@ def researcher_node(state: AgentState, retriever, llm) -> Dict[str, Any]:
             "Respond with ONLY the search query string, nothing else."
         )
         try:
-            hop_res     = llm.invoke(hop_prompt)
+            hop_res     = safe_llm_invoke(llm, hop_prompt)
             step2_query = _get_content(hop_res).strip().strip('"')
             if step2_query and len(step2_query) < 120 and step2_query not in queries:
                 for doc in retriever.invoke(step2_query):
@@ -340,7 +368,7 @@ Respond with ONLY a valid JSON object with the following structure:
 
     user_prompt = f'User Question: "{question}"\n\nRetrieved Evidence Chunks:\n{evidence}'
 
-    response = llm.invoke([
+    response = safe_llm_invoke(llm, [
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
     ])
@@ -422,7 +450,7 @@ Provide the grounded answer clearly structured with inline citations [chunk_id |
         f"Retrieved Evidence Chunks:\n{evidence}"
     )
 
-    response     = llm.invoke([
+    response = safe_llm_invoke(llm, [
         {"role": "system", "content": system_prompt},
         {"role": "user",   "content": user_prompt},
     ])
@@ -494,26 +522,14 @@ def build_pipeline(corpus_path: str | Path):
             "GEMINI_API_KEY is not set. "
             "Add it to Streamlit Cloud secrets as GEMINI_API_KEY."
         )
-    model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
-    primary_llm = ChatGoogleGenerativeAI(
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+    llm = ChatGoogleGenerativeAI(
         model=model_name,
         temperature=0.0,
         max_output_tokens=2048,
         google_api_key=api_key,
-        max_retries=2,
+        max_retries=3,
     )
-    fallback_candidates = ["gemini-1.5-flash", "gemini-2.0-flash-lite", "gemini-1.5-pro", "gemini-3.6-flash"]
-    fallbacks = [
-        ChatGoogleGenerativeAI(
-            model=m,
-            temperature=0.0,
-            max_output_tokens=2048,
-            google_api_key=api_key,
-            max_retries=1,
-        )
-        for m in fallback_candidates if m != model_name
-    ]
-    llm = primary_llm.with_fallbacks(fallbacks)
 
     # ── Wire node closures (inject dependencies via closure) ─────────
     def _planner(state):    return planner_node(state, llm)
