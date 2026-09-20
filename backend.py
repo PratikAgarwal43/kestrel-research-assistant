@@ -522,13 +522,26 @@ def build_pipeline(corpus_path: str | Path):
 
     if groq_api_key:
         from langchain_groq import ChatGroq
-        model_name = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-        llm = ChatGroq(
-            model_name=model_name,
+        model_name = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
+        groq_candidates = [model_name, "llama3-70b-8192", "llama3-8b-8192", "gemma2-9b-it"]
+        seen_m = set()
+        unique_candidates = [m for m in groq_candidates if not (m in seen_m or seen_m.add(m))]
+        primary_groq = ChatGroq(
+            model_name=unique_candidates[0],
             groq_api_key=groq_api_key,
             temperature=0.0,
-            max_retries=3,
+            max_retries=2,
         )
+        groq_fallbacks = [
+            ChatGroq(
+                model_name=m,
+                groq_api_key=groq_api_key,
+                temperature=0.0,
+                max_retries=1,
+            )
+            for m in unique_candidates[1:]
+        ]
+        llm = primary_groq.with_fallbacks(groq_fallbacks) if groq_fallbacks else primary_groq
     elif gemini_api_key:
         model_name = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
         llm = ChatGoogleGenerativeAI(

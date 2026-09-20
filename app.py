@@ -113,7 +113,7 @@ st.markdown("""
 # PIPELINE BOOTSTRAP (loads once per session via cache)
 # ---------------------------------------------------------
 @st.cache_resource(show_spinner="⚙️ Initialising multi-agent pipeline…")
-def load_pipeline(cache_key: str = "v8_dual_groq_gemini"):
+def load_pipeline(cache_key: str = "v9_groq_instant"):
     """
     Import backend.py and build the pipeline.
     Returns (pipeline_app, vectorstore, chunks, error_message_or_None).
@@ -188,7 +188,7 @@ if "current_query" not in st.session_state:
 # ---------------------------------------------------------
 # LOAD PIPELINE
 # ---------------------------------------------------------
-pipeline_app, vectorstore, chunks_meta, boot_error = load_pipeline(cache_key="v8_dual_groq_gemini")
+pipeline_app, vectorstore, chunks_meta, boot_error = load_pipeline(cache_key="v9_groq_instant")
 title_map  = _build_title_map(chunks_meta)
 pipeline_ok = pipeline_app is not None
 
